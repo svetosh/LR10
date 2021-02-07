@@ -1,95 +1,140 @@
-﻿#include <algorithm>
-#include <experimental/filesystem>
-#include <fstream>
-#include <iostream>
-#include <vector>
-#include <iterator>
+﻿#include <iostream>
+#include <string>
+#include <filesystem>
 
-namespace fs = std::experimental::filesystem;
+namespace fs = std::filesystem;
 
-fs::path down(fs::path p) 
-{
-    return p.parent_path();
-}
+const std::string INFO = "Комманды для использования:\n"
+                          "exit - закончить работу программы\n"
+    "show - вывод на экран текщуго каталога\n"
+    "what - вывод на экран содержимое каталога\n"
+    "create - создание папки\n"
+    "size - вывод на экран размер файла\n"
+    "copy - копироваание файла\n"
+    "deleteF - удаление файла\n"
+    "deleteD - удаление католога с файлами\n"
+    "up - перемещение по каталогам вверх\n"
+    "down - перемещение по каталогам вниз\n"
+    "renameF - переименовать файл\n"
+    "renameD - переименовать каталог\n"
+    "move - переместить файл\n";
 
-fs::path up(fs::path p, const std::string s) 
-{
-    return p / s;
-}
-
-int main()
+int main(int argc, char* argv[])
 {
     setlocale(LC_ALL, "ru");
-    fs::path filepath = fs::current_path();
-    std::cout << "Текущий каталог: " << filepath << std::endl;
-
-    std::cout << std::endl;
-
-    std::cout << "Содержимое текущего каталога:" << std::endl;
-    for (fs::path p : fs::directory_iterator(filepath)) 
+    std::string comand, fileName, directoryName;
+    fs::path cur_path, copy_to_path, new_path;
+    std::cout << INFO;
+    std::getline(std::cin, comand);
+    while (comand != "exit")
     {
-        std::cout << p.filename() << std::endl;
+        if (comand == "show")
+        {
+            std::cout << fs::current_path() << std::endl;
+        }
+        else if (comand == "what")
+        {
+            for (auto& p : fs::directory_iterator(fs::current_path()))
+            {
+                cur_path = p.path();
+                std::cout << cur_path.filename() << std::endl;
+            }
+        }
+        else if (comand == "create")
+        {
+            std::string newDirectory;
+            std::cout << "Введите название папки: " << std::endl;
+            std::getline(std::cin, newDirectory);
+            cur_path = fs::current_path();
+            cur_path /= newDirectory;
+            if (!(fs::exists(cur_path))) fs::create_directory(newDirectory);
+        }
+        else if (comand == "size")
+        {
+            std::cout << "Введите название файл, размер которого васм инетересует: " << std::endl;
+            std::getline(std::cin, fileName);
+            cur_path = fs::current_path() / fileName;
+            if (fs::exists(cur_path)) std::cout << fs::file_size(cur_path) << std::endl;
+        }
+        else if (comand == "copy")
+        {
+            std::string copy;
+            std::cout << "Введите файл, который будем копировать: " << std::endl;
+            std::getline(std::cin, fileName);
+            cur_path = fs::current_path() / fileName;
+            copy_to_path = fs::current_path();
+            std::cout << "Введите название нового файла: " << std::endl;
+            std::getline(std::cin, copy);
+            copy_to_path /= copy;
+            fs::copy_file(cur_path, copy_to_path);
+        }
+        else if (comand == "deleteF")
+        {
+            std::cout << "Введите файл, который удалим: " << std::endl;
+            std::getline(std::cin, fileName);
+            cur_path = fs::current_path() / fileName;
+            fs::remove(cur_path);
+        }
+        else if (comand == "deleteD")
+        {
+            std::string deletD;
+            std::cout << "Введите каталога, который удалим: " << std::endl;
+            std::getline(std::cin, deletD);
+            cur_path = fs::current_path() / deletD;
+            fs::remove_all(cur_path);
+        }
+        else if (comand == "up")
+        {
+            std::string up;
+            std::getline(std::cin, up);
+            cur_path = fs::current_path() / up;
+            fs::create_directory(up);
+            fs::current_path(cur_path);
+            std::cout << fs::current_path() << std::endl;
+        }
+        else if (comand == "down")
+        {
+            cur_path = fs::current_path().remove_filename();
+            fs::current_path(cur_path);
+            std::cout << fs::current_path() << std::endl;
+        }
+        else if (comand == "renameF")
+        {
+            std::string renameFile;
+            std::cout << "Введите название файл, который будем переименовывать: " << std::endl;
+            std::getline(std::cin, fileName);
+            std::cout << "Введите название: " << std::endl;
+            std::getline(std::cin, renameFile);
+            cur_path = fs::current_path() / fileName;
+            new_path = fs::current_path() / renameFile;
+            fs::rename(cur_path, new_path);
+        }
+        else if (comand == "renameD")
+        {
+            std::string renameDirectory;
+            std::cout << "Введите название каталога, который будем переименовывать: " << std::endl;
+            std::getline(std::cin, directoryName);
+            std::cout << "Введите название: " << std::endl;
+            std::getline(std::cin, renameDirectory);
+            cur_path = fs::current_path() / directoryName;
+            new_path = fs::current_path() / renameDirectory;
+            fs::rename(cur_path, new_path);
+        }
+        else if (comand == "move")
+        {
+            cur_path = fs::current_path();
+            std::cout << "Введите название файла, который будем перемещать: " << std::endl;
+            std::getline(std::cin, fileName);
+            std::cout << "Куда? " << std::endl;
+            std::getline(std::cin, directoryName);
+            cur_path /= fileName;
+            new_path = fs::current_path();
+            new_path /= directoryName;
+            new_path /= fileName;
+            fs::rename(cur_path, new_path);
+        }
+        std::cout << "Вы ввели некорректную комманду, будьте аккуратней и повторите попытку: " << std::endl;
+        std::getline(std::cin, comand);
     }
-
-    std::cout << std::endl;
-
-    std::string new_folder = "test_folder";
-    if (!(fs::exists(up(filepath, new_folder))))
-    {
-        fs::create_directory(up(filepath, new_folder));
-        std::cout << "Успешно создан каталог test_folder" << std::endl;
-    }
-    else 
-    {
-        std::cout << "Каталог test_folder уже существует" << std::endl;
-    }
-
-    std::cout << std::endl;
-    fs::path new_file = up(filepath, "example");
-    if (!(fs::exists(new_file))) 
-    {
-        std::ofstream(new_file) << "test!";
-        std::cout << "Успешно создан файл example" << std::endl;
-    }
-    std::cout << "Размер файла example: " << fs::file_size(new_file) << std::endl;
-
-    fs::path src = up(filepath, "example");
-    fs::path dst = up(filepath, "example1");
-    if (!(fs::exists(dst))) 
-    {
-        fs::copy_file(src, dst);
-        std::cout << "Успешно скопировали файл example в файл example1" << std::endl;
-    }
-
-
-    src = up(filepath, "example1");
-    dst = up(filepath, "example2");
-    fs::copy_file(src, dst);
-    fs::remove(dst);
-    std::cout << "Успешно удалили созданный файл example2" << std::endl;
-
-    fs::path full_folder = up(filepath, "full_folder");
-    if (!(fs::exists(full_folder))) {
-        fs::create_directory(full_folder);
-    }
-    fs::remove_all(full_folder);
-    std::cout << "Успешно удалили папку вместе с ее содержимым full_folder" << std::endl;
-
-    std::cout << "Демонстрация перехода в родительскую папку" << std::endl;
-    fs::path down_path = filepath;
-    std::cout << "Текущий путь: " << down_path << std::endl;
-    down_path = down(down_path);
-    std::cout << "Новый путь: " << down_path << std::endl;
-
-    std::cout << std::endl;
-
-    fs::rename(up(filepath, "example"), up(filepath, "new_example"));
-    std::cout << "Успешно переименовали example в new_example" << std::endl;
-
-    new_folder = "move_folder";
-    if (!(fs::exists(up(filepath, new_folder)))) {
-        fs::create_directory(up(filepath, new_folder));
-    }
-    fs::rename(up(filepath, "new_example"), up(up(filepath, new_folder), "new_example"));
-    std::cout << "Успешно переместили файл new_example из текущего каталога в каталог move_folder" << std::endl;
+    return 1;
 }
